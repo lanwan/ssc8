@@ -1,0 +1,370 @@
+   1               		.file	"avr_uart.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+  83               	.global	avr_uart_putchar
+  85               	avr_uart_putchar:
+   1:avr_uart.c    **** #include "avr_modules.h"
+   2:avr_uart.c    **** 
+   3:avr_uart.c    **** #if USE_AVR_UART_MODULE
+   4:avr_uart.c    **** 
+   5:avr_uart.c    **** #include <avr/io.h>
+   6:avr_uart.c    **** #include <stdint.h>
+   7:avr_uart.c    **** 
+   8:avr_uart.c    **** //void avr_uart_init(void) {
+   9:avr_uart.c    **** //#if F_CPU < 2000000UL && defined(U2X)
+  10:avr_uart.c    **** //	UCSRA = _BV(U2X); /* improve baud rate error by using 2x clk */
+  11:avr_uart.c    **** //	UBRRL = (F_CPU / (8UL * UART_BAUD)) - 1;
+  12:avr_uart.c    **** //#else
+  13:avr_uart.c    **** //	UBRRL = (F_CPU / (16UL * UART_BAUD)) - 1;
+  14:avr_uart.c    **** //#endif
+  15:avr_uart.c    **** //	UCSRB = _BV(TXEN) | _BV(RXEN); /* tx/rx enable */
+  16:avr_uart.c    **** //}
+  17:avr_uart.c    **** 
+  18:avr_uart.c    **** #if USE_AVR_UART_C_IO
+  19:avr_uart.c    **** int avr_uart_putchar(char c, FILE *unused)
+  20:avr_uart.c    **** {
+  86               	g__
+  87               		in r28,__SP_L__
+  88               		in r29,__SP_H__
+  89 0000 DF93      	/* prologue: function */
+  90 0002 CF93      	/* frame size = 3 */
+  91 0004 00D0      		std Y+1,r24
+  92 0006 0F92      		std Y+3,r23
+  93 0008 CDB7      		std Y+2,r22
+  94 000a DEB7      	.L2:
+  96               	.LM1:
+  97 000c 8983      		ldi r30,lo8(43)
+  98 000e 7B83      		ldi r31,hi8(43)
+  99 0010 6A83      		ld r24,Z
+ 100               		mov r24,r24
+  21:avr_uart.c    **** //	if( c == '\n' )
+  22:avr_uart.c    **** //		avr_uart_putchar('\r', unused);
+  23:avr_uart.c    **** 
+  24:avr_uart.c    **** 	loop_until_bit_is_set(UCSRA, UDRE);
+ 101               	
+ 102               		andi r24,lo8(32)
+ 103 0012 EBE2      		andi r25,hi8(32)
+ 104 0014 F0E0      		sbiw r24,0
+ 105 0016 8081      		breq .L2
+ 107 001a 90E0      	.LM2:
+ 108 001c 8072      		ldi r30,lo8(44)
+ 109 001e 9070      		ldi r31,hi8(44)
+ 110 0020 0097      		ldd r24,Y+1
+ 111 0022 01F0      		st Z,r24
+  25:avr_uart.c    **** 	UDR = c;
+ 112               	1-.LFBB1
+ 113               	.LM1:
+ 114 0024 ECE2      		ldi r30,lo8(43)
+ 115 0026 F0E0      		ldi r31,hi8(43)
+ 116 0028 8981      		ld r24,Z
+ 117 002a 8083      		mov r24,r24
+  26:avr_uart.c    **** 	return 0;
+ 118               	25,lo8(0)
+ 119               		andi r24,lo8(32)
+ 120 002c 80E0      		andi r25,hi8(32)
+ 121 002e 90E0      		sbiw r24,0
+ 122               		breq .L2
+  27:avr_uart.c    **** }
+ 123               	 function */
+ 124               	/* frame size = 3 */
+ 125 0030 0F90      		std Y+1,r24
+ 126 0032 0F90      		std Y+3,r23
+ 127 0034 0F90      		std Y+2,r22
+ 128 0036 CF91      	.L2:
+ 130 003a 0895      	.LM1:
+ 131               		ldi r30,lo8(43)
+ 132               		ldi r31,hi8(43)
+ 133               		ld r24,Z
+ 134               		mov r24,r24
+ 135               		ldi r25,lo8(0)
+ 136               		andi r24,lo8(32)
+ 137               		andi r25,hi8(32)
+  28:avr_uart.c    **** 
+  29:avr_uart.c    **** int avr_uart_getchar(FILE *stream)
+  30:avr_uart.c    **** {
+ 138               	eq .L2
+ 140               	.LM2:
+ 141 003c DF93      		ldi r30,lo8(44)
+ 142 003e CF93      		ldi r31,hi8(44)
+ 143 0040 00D0      		ldd r24,Y+1
+ 144 0042 00D0      		st Z,r24
+ 146 0046 DEB7      	.LM3:
+ 147               		ldi r24,lo8(0)
+ 148               		ldi r25,hi8(0)
+ 149 0048 9A83      	/* epilogue start */
+ 151               	.LM4:
+  31:avr_uart.c    **** 	loop_until_bit_is_set(UCSRA, RXC);
+ 152               	w r24,0
+ 153               		breq .L2
+ 155 004e F0E0      	.LM2:
+ 156 0050 8081      		ldi r30,lo8(44)
+ 157 0052 8823      		ldi r31,hi8(44)
+ 158 0054 04F4      		ldd r24,Y+1
+  32:avr_uart.c    **** 	if (UCSRA & _BV(FE))
+ 159               	68,0,24,.LM1-.LFBB1
+ 160               	.LM1:
+ 161 0056 EBE2      		ldi r30,lo8(43)
+ 162 0058 F0E0      		ldi r31,hi8(43)
+ 163 005a 8081      		ld r24,Z
+ 164 005c 882F      		mov r24,r24
+ 165 005e 90E0      		ldi r25,lo8(0)
+ 166 0060 8071      		andi r24,lo8(32)
+ 167 0062 9070      		andi r25,hi8(32)
+ 168 0064 0097      		sbiw r24,0
+ 169 0066 01F0      		breq .L2
+  33:avr_uart.c    **** 	  return _FDEV_EOF;
+ 170               	0,25,.LM2-.LFBB1
+ 171               	.LM2:
+ 172 0068 2EEF      		ldi r30,lo8(44)
+ 173 006a 3FEF      		ldi r31,hi8(44)
+ 174 006c 3C83      		ldd r24,Y+1
+ 175 006e 2B83      		st Z,r24
+ 177               	.LM3:
+  34:avr_uart.c    **** 	if (UCSRA & _BV(DOR))
+ 178               	 r31,hi8(43)
+ 179               		ld r24,Z
+ 180 0072 EBE2      		mov r24,r24
+ 181 0074 F0E0      		ldi r25,lo8(0)
+ 182 0076 8081      		andi r24,lo8(32)
+ 183 0078 882F      		andi r25,hi8(32)
+ 184 007a 90E0      		sbiw r24,0
+ 185 007c 8870      		breq .L2
+ 187 0080 0097      	.LM2:
+ 188 0082 01F0      		ldi r30,lo8(44)
+  35:avr_uart.c    **** 	  return _FDEV_ERR;
+ 189               	8(44)
+ 190               		ldd r24,Y+1
+ 191 0084 8FEF      		st Z,r24
+ 193 0088 9C83      	.LM3:
+ 194 008a 8B83      		ldi r24,lo8(0)
+ 195 008c 00C0      		ldi r25,hi8(0)
+ 196               	/* epilogue start */
+  36:avr_uart.c    **** 
+  37:avr_uart.c    **** 	return UDR;
+ 197               	i r24,lo8(32)
+ 198               		andi r25,hi8(32)
+ 199 008e ECE2      		sbiw r24,0
+ 200 0090 F0E0      		breq .L2
+ 202 0094 282F      	.LM2:
+ 203 0096 30E0      		ldi r30,lo8(44)
+ 204 0098 3C83      		ldi r31,hi8(44)
+ 205 009a 2B83      		ldd r24,Y+1
+ 206               		st Z,r24
+ 208 009e 9C81      	.LM3:
+ 209               		ldi r24,lo8(0)
+  38:avr_uart.c    **** }
+ 210               	r24,Z
+ 211               		mov r24,r24
+ 212 00a0 0F90      		ldi r25,lo8(0)
+ 213 00a2 0F90      		andi r24,lo8(32)
+ 214 00a4 0F90      		andi r25,hi8(32)
+ 215 00a6 0F90      		sbiw r24,0
+ 216 00a8 CF91      		breq .L2
+ 218 00ac 0895      	.LM2:
+ 219               		ldi r30,lo8(44)
+ 220               		ldi r31,hi8(44)
+ 221               		ldd r24,Y+1
+ 222               		st Z,r24
+ 224               	.LM3:
+ 225               		ldi r24,lo8(0)
+  39:avr_uart.c    **** 
+  40:avr_uart.c    **** #endif // USE_AVR_UART_C_IO
+  41:avr_uart.c    **** 
+  42:avr_uart.c    **** /*
+  43:avr_uart.c    **** ***************************************************************************************************
+  44:avr_uart.c    **** *                                          INIT UART BAUD RATE
+  45:avr_uart.c    **** *
+  46:avr_uart.c    **** * Description : Initialize uart port baud rate
+  47:avr_uart.c    **** *
+  48:avr_uart.c    **** * Arguments   : ubrr_val  UBRRH value
+  49:avr_uart.c    **** *
+  50:avr_uart.c    **** * Returns     : None
+  51:avr_uart.c    **** ***************************************************************************************************
+  52:avr_uart.c    **** */
+  53:avr_uart.c    **** void avr_uart_init(int16_t ubrr_val) {
+ 226               	r24,Z
+ 227               		mov r24,r24
+ 228               		ldi r25,lo8(0)
+ 229 00ae DF93      		andi r24,lo8(32)
+ 230 00b0 CF93      		andi r25,hi8(32)
+ 231 00b2 00D0      		sbiw r24,0
+ 232 00b4 CDB7      		breq .L2
+ 234               	.LM2:
+ 235               		ldi r30,lo8(44)
+ 236 00b8 9A83      		ldi r31,hi8(44)
+ 237 00ba 8983      		ldd r24,Y+1
+  54:avr_uart.c    ****     /* 设置波特率 */
+  55:avr_uart.c    ****     UBRRH = (unsigned char)(ubrr_val>>8);
+ 238               	68,0,24,.LM1-.LFBB1
+ 239               	.LM1:
+ 240 00bc E0E4      		ldi r30,lo8(43)
+ 241 00be F0E0      		ldi r31,hi8(43)
+ 242 00c0 8981      		ld r24,Z
+ 243 00c2 9A81      		mov r24,r24
+ 244 00c4 892F      		ldi r25,lo8(0)
+ 245 00c6 990F      		andi r24,lo8(32)
+ 246 00c8 990B      		andi r25,hi8(32)
+ 247 00ca 8083      		sbiw r24,0
+  56:avr_uart.c    ****     UBRRL = (unsigned char)ubrr_val;
+ 249               	.LM2:
+ 250 00cc E9E2      		ldi r30,lo8(44)
+ 251 00ce F0E0      		ldi r31,hi8(44)
+ 252 00d0 8981      		ldd r24,Y+1
+ 253 00d2 8083      		st Z,r24
+  57:avr_uart.c    **** 
+  58:avr_uart.c    ****     /* 接收器与发送器使能 */
+  59:avr_uart.c    ****     UCSRB = (1<<RXEN)|(1<<TXEN);
+ 254               	1-.LFBB1
+ 255               	.LM1:
+ 256 00d4 EAE2      		ldi r30,lo8(43)
+ 257 00d6 F0E0      		ldi r31,hi8(43)
+ 258 00d8 88E1      		ld r24,Z
+ 259 00da 8083      		mov r24,r24
+  60:avr_uart.c    **** 
+  61:avr_uart.c    ****     /* 设置帧格式: 8个数据位, 1个停止位*/
+  62:avr_uart.c    ****     UCSRC = (1<<URSEL)|(3<<UCSZ0);
+ 260               	25,lo8(0)
+ 261               		andi r24,lo8(32)
+ 262 00dc E0E4      		andi r25,hi8(32)
+ 263 00de F0E0      		sbiw r24,0
+ 264 00e0 86E8      		breq .L2
+ 266               	.LM2:
+  63:avr_uart.c    **** }
+ 267               	td Y+1,r24
+ 268               		std Y+3,r23
+ 269 00e4 0F90      		std Y+2,r22
+ 270 00e6 0F90      	.L2:
+ 272 00ea DF91      	.LM1:
+ 273 00ec 0895      		ldi r30,lo8(43)
+ 274               		ldi r31,hi8(43)
+ 275               		ld r24,Z
+ 276               		mov r24,r24
+ 277               		ldi r25,lo8(0)
+ 278               		andi r24,lo8(32)
+ 279               		andi r25,hi8(32)
+ 280               		sbiw r24,0
+  64:avr_uart.c    **** 
+  65:avr_uart.c    **** #if USE_AVR_UART_IO
+  66:avr_uart.c    **** /*
+  67:avr_uart.c    **** ***************************************************************************************************
+  68:avr_uart.c    **** *                                          PUT A BYTE VALUE TO UART PORT
+  69:avr_uart.c    **** *
+  70:avr_uart.c    **** * Description : Put a byte data value to uart port
+  71:avr_uart.c    **** *
+  72:avr_uart.c    **** * Arguments   : val data value
+  73:avr_uart.c    **** *
+  74:avr_uart.c    **** * Returns     : None
+  75:avr_uart.c    **** ***************************************************************************************************
+  76:avr_uart.c    **** */
+  77:avr_uart.c    **** void avr_uart_putc(uint8_t val) {
+ 281               	abn	68,0,25,.LM2-.LFBB1
+ 282               	.LM2:
+ 283               		ldi r30,lo8(44)
+ 284 00ee DF93      		ldi r31,hi8(44)
+ 285 00f0 CF93      		ldd r24,Y+1
+ 286 00f2 0F92      		st Z,r24
+ 288 00f6 DEB7      	.LM3:
+ 289               		ldi r24,lo8(0)
+ 290               		ldi r25,hi8(0)
+ 291 00f8 8983      	/* epilogue start */
+  78:avr_uart.c    ****     /* 等待发送缓冲器为空 */
+  79:avr_uart.c    ****     while ( !( UCSRA & (1<<UDRE)) );
+ 293               	2)
+ 294               		sbiw r24,0
+ 295 00fa EBE2      		breq .L2
+ 297 00fe 8081      	.LM2:
+ 298 0100 882F      		ldi r30,lo8(44)
+ 299 0102 90E0      		ldi r31,hi8(44)
+ 300 0104 8072      		ldd r24,Y+1
+ 301 0106 9070      		st Z,r24
+ 303 010a 01F0      	.LM3:
+  80:avr_uart.c    **** 
+  81:avr_uart.c    ****     /* 将数据放入缓冲器，发送数据 */
+  82:avr_uart.c    ****     UDR = val;
+ 304               	 r31,hi8(43)
+ 305               		ld r24,Z
+ 306 010c ECE2      		mov r24,r24
+ 307 010e F0E0      		ldi r25,lo8(0)
+ 308 0110 8981      		andi r24,lo8(32)
+ 309 0112 8083      		andi r25,hi8(32)
+ 310               		sbiw r24,0
+  83:avr_uart.c    **** }
+ 311               	L2
+ 313 0114 0F90      	.LM2:
+ 314 0116 CF91      		ldi r30,lo8(44)
+ 315 0118 DF91      		ldi r31,hi8(44)
+ 316 011a 0895      		ldd r24,Y+1
+ 317               		st Z,r24
+ 319               	.LM3:
+ 320               		ldi r24,lo8(0)
+ 321               		ldi r25,hi8(0)
+ 322               	/* epilogue start */
+  84:avr_uart.c    **** 
+  85:avr_uart.c    **** /*
+  86:avr_uart.c    **** ***************************************************************************************************
+  87:avr_uart.c    **** *                                          GET A BYTE VALUE FROM UART PORT
+  88:avr_uart.c    **** *
+  89:avr_uart.c    **** * Description : Get a byte data value from uart port
+  90:avr_uart.c    **** *
+  91:avr_uart.c    **** * Arguments   : None
+  92:avr_uart.c    **** *
+  93:avr_uart.c    **** * Returns     : Read data
+  94:avr_uart.c    **** ***************************************************************************************************
+  95:avr_uart.c    **** */
+  96:avr_uart.c    **** uint8_t avr_uart_getc(void) {
+ 323               	i r24,lo8(32)
+ 324               		andi r25,hi8(32)
+ 325               		sbiw r24,0
+ 326 011c DF93      		breq .L2
+ 328 0120 CDB7      	.LM2:
+ 329 0122 DEB7      		ldi r30,lo8(44)
+ 330               		ldi r31,hi8(44)
+ 331               		ldd r24,Y+1
+ 332               		st Z,r24
+  97:avr_uart.c    ****     /*等待接收数据*/
+  98:avr_uart.c    ****     while ( !(UCSRA & (1<<RXC)) );
+ 333               	1-.LFBB1
+ 334               	.LM1:
+ 335 0124 EBE2      		ldi r30,lo8(43)
+ 336 0126 F0E0      		ldi r31,hi8(43)
+ 337 0128 8081      		ld r24,Z
+ 338 012a 8823      		mov r24,r24
+ 339 012c 04F4      		ldi r25,lo8(0)
+  99:avr_uart.c    **** 
+ 100:avr_uart.c    ****     /* 从缓冲器中获取并返回数据*/
+ 101:avr_uart.c    ****     return UDR;
+ 340               	24,lo8(32)
+ 341               		andi r25,hi8(32)
+ 342 012e ECE2      		sbiw r24,0
+ 343 0130 F0E0      		breq .L2
+ 345               	.LM2:
+ 102:avr_uart.c    **** }
+ 346               	td Y+1,r24
+ 347               		std Y+3,r23
+ 348 0134 CF91      		std Y+2,r22
+ 349 0136 DF91      	.L2:
+ 351               	.LM1:
+ 352               		ldi r30,lo8(43)
+ 353               		ldi r31,hi8(43)
+ 354               		ld r24,Z
+DEFINED SYMBOLS
+                            *ABS*:00000000 avr_uart.c
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:2      *ABS*:0000003f __SREG__
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:5      *ABS*:00000034 __CCP__
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:85     .text:00000000 avr_uart_putchar
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:137    .text:0000003c avr_uart_getchar
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:225    .text:000000ae avr_uart_init
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:280    .text:000000ee avr_uart_putc
+C:\Users\Steven\AppData\Local\Temp/cc2xJbtF.s:322    .text:0000011c avr_uart_getc
+
+NO UNDEFINED SYMBOLS

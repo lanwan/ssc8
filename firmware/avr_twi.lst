@@ -1,0 +1,744 @@
+   1               		.file	"avr_twi.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+  81               	.global	avr_cy2239x_init
+  83               	avr_cy2239x_init:
+   1:avr_twi.c     **** /*
+   2:avr_twi.c     ****  * avr_twi.c
+   3:avr_twi.c     ****  *
+   4:avr_twi.c     ****  *  Created on: 2009-6-25
+   5:avr_twi.c     ****  *      Author: Steven
+   6:avr_twi.c     ****  */
+   7:avr_twi.c     **** 
+   8:avr_twi.c     **** #include "avr_modules.h"
+   9:avr_twi.c     **** 
+  10:avr_twi.c     **** #if USE_AVR_TWI_MODULE
+  11:avr_twi.c     **** 
+  12:avr_twi.c     **** #define DEBUG		1
+  13:avr_twi.c     **** 
+  14:avr_twi.c     **** #include <avr/io.h>
+  15:avr_twi.c     **** #include <avr/interrupt.h>
+  16:avr_twi.c     **** #include <util/twi.h>
+  17:avr_twi.c     **** 
+  18:avr_twi.c     **** #define TWI_BUS_START()                  ( TWCR = _BV(TWINT) | _BV(TWSTA) | _BV(TWEN) )
+  19:avr_twi.c     **** #define TWI_BUS_STOP()                   ( TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN) )
+  20:avr_twi.c     **** #define TWI_BUS_WAIT()                   { while ((TWCR & _BV(TWINT)) == 0); }
+  21:avr_twi.c     **** #define TWI_BUS_STATUS                   TW_STATUS
+  22:avr_twi.c     **** #define TWI_BUS_SET_ACK()                ( TWCR |= _BV(TWEA) )
+  23:avr_twi.c     **** #define TWI_BUS_SET_NACK()               ( TWCR &= ~_BV(TWEA) )
+  24:avr_twi.c     **** #define TWI_BUS_START_READ()             ( TWCR = (_BV(TWINT) | _BV(TWEN)) )
+  25:avr_twi.c     **** #define TWI_BUS_WRITE_BYTE(x)            { TWDR = (x); TWCR = _BV(TWINT) | _BV(TWEN); }
+  26:avr_twi.c     **** 
+  27:avr_twi.c     **** //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  28:avr_twi.c     **** #if USE_AVR_TWI_EEPROM
+  29:avr_twi.c     **** 
+  30:avr_twi.c     **** /**
+  31:avr_twi.c     ****  *      You need define TWI_SLA_ADDR_24CXX, it means E2PROM TWI address.
+  32:avr_twi.c     ****  *      Please see chip datasheet.
+  33:avr_twi.c     ****  */
+  34:avr_twi.c     **** 
+  35:avr_twi.c     **** /*
+  36:avr_twi.c     ****  * Note [3]
+  37:avr_twi.c     ****  * TWI address for 24Cxx EEPROM:
+  38:avr_twi.c     ****  *
+  39:avr_twi.c     ****  * 1 0 1 0 E2 E1 E0 R/~W        24C01/24C02
+  40:avr_twi.c     ****  * 1 0 1 0 E2 E1 A8 R/~W        24C04
+  41:avr_twi.c     ****  * 1 0 1 0 E2 A9 A8 R/~W        24C08
+  42:avr_twi.c     ****  * 1 0 1 0 A10 A9 A8 R/~W       24C16
+  43:avr_twi.c     ****  */
+  44:avr_twi.c     **** #define TWI_SLA_ADDR_24CXX   0xa0    /* E2 E1 E0 = 0 0 0 */
+  45:avr_twi.c     **** 
+  46:avr_twi.c     **** void avr_ee24xx_init(void)
+  47:avr_twi.c     **** {
+  48:avr_twi.c     **** 	/* initialize TWI clock: 100 kHz clock, TWPS = 0 => prescaler = 1 */
+  49:avr_twi.c     **** #if defined(TWPS0)
+  50:avr_twi.c     **** 	/* has prescaler (mega128 & newer) */
+  51:avr_twi.c     **** 	TWSR = 0;
+  52:avr_twi.c     **** #endif
+  53:avr_twi.c     **** 
+  54:avr_twi.c     **** #if F_CPU < 3600000UL
+  55:avr_twi.c     **** 	TWBR = 10; /* smallest TWBR value, see note [5] */
+  56:avr_twi.c     **** #else
+  57:avr_twi.c     **** 	TWBR = (F_CPU / 100000UL - 16) / 2;
+  58:avr_twi.c     **** #endif
+  59:avr_twi.c     **** }
+  60:avr_twi.c     **** ;
+  61:avr_twi.c     **** 
+  62:avr_twi.c     **** int avr_ee24xx_read_buffer(uint16_t eeaddr, int len, uint8_t *buf)
+  63:avr_twi.c     **** {
+  64:avr_twi.c     **** 	TWI_BUS_START(); // start
+  65:avr_twi.c     **** 	TWI_BUS_WAIT();
+  66:avr_twi.c     **** 
+  67:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(TWI_SLA_ADDR_24CXX | TW_WRITE); // control byte
+  68:avr_twi.c     **** 	TWI_BUS_WAIT();
+  69:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_SLA_ACK)
+  70:avr_twi.c     **** 		return -1; // ACK
+  71:avr_twi.c     **** 
+  72:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(eeaddr >> 8); // address high byte
+  73:avr_twi.c     **** 	TWI_BUS_WAIT();
+  74:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+  75:avr_twi.c     **** 		return -2; // ACK
+  76:avr_twi.c     **** 
+  77:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(eeaddr & 0xFF); // address low byte
+  78:avr_twi.c     **** 	TWI_BUS_WAIT();
+  79:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+  80:avr_twi.c     **** 		return -3; // ACK
+  81:avr_twi.c     **** 
+  82:avr_twi.c     **** 	TWI_BUS_START(); // start
+  83:avr_twi.c     **** 	TWI_BUS_WAIT();
+  84:avr_twi.c     **** 
+  85:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(TWI_SLA_ADDR_24CXX | TW_READ); // control byte
+  86:avr_twi.c     **** 	TWI_BUS_WAIT();
+  87:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MR_SLA_ACK)
+  88:avr_twi.c     **** 		return -4; // ACK
+  89:avr_twi.c     **** 
+  90:avr_twi.c     **** 	TWI_BUS_START_READ();
+  91:avr_twi.c     **** 
+  92:avr_twi.c     **** 	int i;
+  93:avr_twi.c     **** 	for (i = 0; i < len; ++i)
+  94:avr_twi.c     **** 	{
+  95:avr_twi.c     **** 		if (i == len - 1)
+  96:avr_twi.c     **** 			TWI_BUS_SET_NACK(); // send NACK
+  97:avr_twi.c     **** 		else
+  98:avr_twi.c     **** 			TWI_BUS_SET_ACK(); // send ACK
+  99:avr_twi.c     **** 
+ 100:avr_twi.c     **** 		TWI_BUS_WAIT();
+ 101:avr_twi.c     **** 		*buf = TWDR;
+ 102:avr_twi.c     **** 		//printf("%x",*buf);
+ 103:avr_twi.c     **** 		buf++;
+ 104:avr_twi.c     **** 	}
+ 105:avr_twi.c     **** 
+ 106:avr_twi.c     **** 	TWI_BUS_STOP();
+ 107:avr_twi.c     **** 
+ 108:avr_twi.c     **** 	return TRUE;
+ 109:avr_twi.c     **** }
+ 110:avr_twi.c     **** 
+ 111:avr_twi.c     **** int avr_ee24xx_write_buffer(uint16_t eeaddr, uint8_t len, uint8_t* buf)
+ 112:avr_twi.c     **** {
+ 113:avr_twi.c     **** 	TWI_BUS_START(); // start
+ 114:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 115:avr_twi.c     **** 
+ 116:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(TWI_SLA_ADDR_24CXX | TW_WRITE); // control byte
+ 117:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 118:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_SLA_ACK)
+ 119:avr_twi.c     **** 		return -1; // ACK
+ 120:avr_twi.c     **** 
+ 121:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(eeaddr >> 8); // address high byte
+ 122:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 123:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+ 124:avr_twi.c     **** 		return -2; // ACK
+ 125:avr_twi.c     **** 
+ 126:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(eeaddr & 0xFF); // address low byte
+ 127:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 128:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+ 129:avr_twi.c     **** 		return -3; // ACK
+ 130:avr_twi.c     **** 
+ 131:avr_twi.c     **** 
+ 132:avr_twi.c     **** 	uint8_t i;
+ 133:avr_twi.c     **** 	for (i = 0; i < len; ++i)
+ 134:avr_twi.c     **** 	{
+ 135:avr_twi.c     **** 		//printf("%x",*buf);
+ 136:avr_twi.c     **** 		TWI_BUS_WRITE_BYTE(*buf);
+ 137:avr_twi.c     **** 		TWI_BUS_WAIT();
+ 138:avr_twi.c     **** 		if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+ 139:avr_twi.c     **** 			return -4; // ACK
+ 140:avr_twi.c     **** 		buf++;
+ 141:avr_twi.c     **** 	}
+ 142:avr_twi.c     **** 
+ 143:avr_twi.c     **** 	TWI_BUS_STOP();
+ 144:avr_twi.c     **** 
+ 145:avr_twi.c     **** 	return TRUE;
+ 146:avr_twi.c     **** }
+ 147:avr_twi.c     **** 
+ 148:avr_twi.c     **** #endif // USE_AVR_TWI_EEPROM
+ 149:avr_twi.c     **** //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ 150:avr_twi.c     **** 
+ 151:avr_twi.c     **** 
+ 152:avr_twi.c     **** //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ 153:avr_twi.c     **** #if USE_AVR_TWI_CY2239X
+ 154:avr_twi.c     **** 
+ 155:avr_twi.c     **** /**
+ 156:avr_twi.c     ****  *      You need define TWI_SLA_ADDR_CY2293X, it means CY2293X device TWI address.
+ 157:avr_twi.c     ****  */
+ 158:avr_twi.c     **** 
+ 159:avr_twi.c     **** #define TWI_SLA_ADDR_CY2293X            (0x69 << 1) // default serial interface address
+ 160:avr_twi.c     **** void avr_cy2239x_init(void)
+ 161:avr_twi.c     **** {
+  84               	 r29,__SP_H__
+  85               	/* prologue: function */
+  86               	/* frame size = 0 */
+  88 0002 CF93      	.LM1:
+  89 0004 CDB7      		ldi r30,lo8(33)
+  90 0006 DEB7      		ldi r31,hi8(33)
+  91               		st Z,__zero_reg__
+ 162:avr_twi.c     **** 	/* initialize TWI clock: 100 kHz clock, TWPS = 0 => prescaler = 1 */
+ 163:avr_twi.c     **** #if defined(TWPS0)
+ 164:avr_twi.c     **** 	/* has prescaler (mega128 & newer) */
+ 165:avr_twi.c     **** 	TWSR = 0;
+  93               	i r30,lo8(32)
+  94               		ldi r31,hi8(32)
+  95 0008 E1E2      		ldi r24,lo8(32)
+  96 000a F0E0      		st Z,r24
+  97 000c 1082      	/* epilogue start */
+ 166:avr_twi.c     **** #endif
+ 167:avr_twi.c     **** 
+ 168:avr_twi.c     **** #if F_CPU < 3600000UL
+ 169:avr_twi.c     **** 	TWBR = 10; /* smallest TWBR value, see note [5] */
+ 170:avr_twi.c     **** #else
+ 171:avr_twi.c     **** 	TWBR = (F_CPU / 100000UL - 16) / 2;
+  98               	bn	68,0,173,.LM3-.LFBB1
+  99               	.LM3:
+ 100 000e E0E2      		pop r28
+ 101 0010 F0E0      		pop r29
+ 102 0012 80E2      		ret
+ 104               	.Lscope1:
+ 172:avr_twi.c     **** #endif
+ 173:avr_twi.c     **** }
+ 105               		"avr_cy2239x_read_buffer:F(0,1)",36,0,0,avr_cy2239x_read_buffer
+ 109 001a 0895      	.global	avr_cy2239x_read_buffer
+ 111               	avr_cy2239x_read_buffer:
+ 113               	.LM4:
+ 114               	.LFBB2:
+ 115               		push r29
+ 116               		push r28
+ 117               		in r28,__SP_L__
+ 118               		in r29,__SP_H__
+ 174:avr_twi.c     **** ;
+ 175:avr_twi.c     **** 
+ 176:avr_twi.c     **** int avr_cy2239x_read_buffer(uint8_t addr, int len, uint8_t *buf)
+ 177:avr_twi.c     **** {
+ 119               	n __tmp_reg__,__SREG__
+ 120               		cli
+ 121               		out __SP_H__,r29
+ 122 001c DF93      		out __SREG__,__tmp_reg__
+ 123 001e CF93      		out __SP_L__,r28
+ 124 0020 CDB7      	/* prologue: function */
+ 125 0022 DEB7      	/* frame size = 9 */
+ 126 0024 2997      		std Y+3,r24
+ 127 0026 0FB6      		std Y+5,r23
+ 128 0028 F894      		std Y+4,r22
+ 129 002a DEBF      		std Y+7,r21
+ 130 002c 0FBE      		std Y+6,r20
+ 132               	.LM5:
+ 133               		ldi r30,lo8(86)
+ 134 0030 8B83      		ldi r31,hi8(86)
+ 135 0032 7D83      		ldi r24,lo8(-92)
+ 136 0034 6C83      		st Z,r24
+ 137 0036 5F83      	.L4:
+ 178:avr_twi.c     **** 	TWI_BUS_START(); // start
+ 139               	6)
+ 140               		ldi r31,hi8(86)
+ 141 003a E6E5      		ld r24,Z
+ 142 003c F0E0      		tst r24
+ 143 003e 84EA      		brge .L4
+ 145               	.LM7:
+ 179:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 146               	0,lo8(35)
+ 147               		ldi r31,hi8(35)
+ 148 0042 E6E5      		ldi r24,lo8(-46)
+ 149 0044 F0E0      		st Z,r24
+ 150 0046 8081      		ldi r30,lo8(86)
+ 151 0048 8823      		ldi r31,hi8(86)
+ 152 004a 04F4      		ldi r24,lo8(-124)
+ 180:avr_twi.c     **** 
+ 181:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(TWI_SLA_ADDR_CY2293X | TW_WRITE); // control byte
+ 153               	24
+ 154               	.L5:
+ 156 004e F0E0      	.LM8:
+ 157 0050 82ED      		ldi r30,lo8(86)
+ 158 0052 8083      		ldi r31,hi8(86)
+ 159 0054 E6E5      		ld r24,Z
+ 160 0056 F0E0      		tst r24
+ 161 0058 84E8      		brge .L5
+ 163               	.LM9:
+ 182:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 164               	8(33)
+ 165               		ldi r31,hi8(33)
+ 166 005c E6E5      		ld r24,Z
+ 167 005e F0E0      		mov r24,r24
+ 168 0060 8081      		ldi r25,lo8(0)
+ 169 0062 8823      		andi r24,lo8(248)
+ 170 0064 04F4      		andi r25,hi8(248)
+ 183:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_SLA_ACK)
+ 171               	4,24
+ 172               		cpc r25,__zero_reg__
+ 173 0066 E1E2      		breq .L6
+ 175 006a 8081      	.LM10:
+ 176 006c 882F      		ldi r24,lo8(-1)
+ 177 006e 90E0      		ldi r25,hi8(-1)
+ 178 0070 887F      		std Y+9,r25
+ 179 0072 9070      		std Y+8,r24
+ 180 0074 8831      		rjmp .L7
+ 181 0076 9105      	.L6:
+ 184:avr_twi.c     **** 		return -1; // ACK
+ 183               	r30,lo8(35)
+ 184               		ldi r31,hi8(35)
+ 185 007a 8FEF      		ldd r24,Y+3
+ 186 007c 9FEF      		st Z,r24
+ 187 007e 9987      		ldi r30,lo8(86)
+ 188 0080 8887      		ldi r31,hi8(86)
+ 189 0082 00C0      		ldi r24,lo8(-124)
+ 190               		st Z,r24
+ 185:avr_twi.c     **** 
+ 186:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(addr & 0xFF); // address byte
+ 191               	tabn	68,0,187,.LM12-.LFBB2
+ 192               	.LM12:
+ 193 0084 E3E2      		ldi r30,lo8(86)
+ 194 0086 F0E0      		ldi r31,hi8(86)
+ 195 0088 8B81      		ld r24,Z
+ 196 008a 8083      		tst r24
+ 197 008c E6E5      		brge .L8
+ 199 0090 84E8      	.LM13:
+ 200 0092 8083      		ldi r30,lo8(33)
+ 201               		ldi r31,hi8(33)
+ 187:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 202               	mov r24,r24
+ 203               		ldi r25,lo8(0)
+ 204 0094 E6E5      		andi r24,lo8(248)
+ 205 0096 F0E0      		andi r25,hi8(248)
+ 206 0098 8081      		cpi r24,40
+ 207 009a 8823      		cpc r25,__zero_reg__
+ 208 009c 04F4      		breq .L9
+ 188:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+ 209               		68,0,189,.LM14-.LFBB2
+ 210               	.LM14:
+ 211 009e E1E2      		ldi r24,lo8(-3)
+ 212 00a0 F0E0      		ldi r25,hi8(-3)
+ 213 00a2 8081      		std Y+9,r25
+ 214 00a4 882F      		std Y+8,r24
+ 215 00a6 90E0      		rjmp .L7
+ 216 00a8 887F      	.L9:
+ 218 00ac 8832      	.LM15:
+ 219 00ae 9105      		ldi r30,lo8(86)
+ 220 00b0 01F0      		ldi r31,hi8(86)
+ 189:avr_twi.c     **** 		return -3; // ACK
+ 221               	(-92)
+ 222               		st Z,r24
+ 223 00b2 8DEF      	.L10:
+ 225 00b6 9987      	.LM16:
+ 226 00b8 8887      		ldi r30,lo8(86)
+ 227 00ba 00C0      		ldi r31,hi8(86)
+ 228               		ld r24,Z
+ 190:avr_twi.c     **** 
+ 191:avr_twi.c     **** 	TWI_BUS_START(); // start
+ 229               	
+ 230               		brge .L10
+ 232 00be F0E0      	.LM17:
+ 233 00c0 84EA      		ldi r30,lo8(35)
+ 234 00c2 8083      		ldi r31,hi8(35)
+ 235               		ldi r24,lo8(-45)
+ 192:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 236               	r24
+ 237               		ldi r30,lo8(86)
+ 238 00c4 E6E5      		ldi r31,hi8(86)
+ 239 00c6 F0E0      		ldi r24,lo8(-124)
+ 240 00c8 8081      		st Z,r24
+ 241 00ca 8823      	.L11:
+ 193:avr_twi.c     **** 
+ 194:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(TWI_SLA_ADDR_CY2293X | TW_READ); // control byte
+ 243               		ldi r30,lo8(86)
+ 244               		ldi r31,hi8(86)
+ 245 00ce E3E2      		ld r24,Z
+ 246 00d0 F0E0      		tst r24
+ 247 00d2 83ED      		brge .L11
+ 249 00d6 E6E5      	.LM19:
+ 250 00d8 F0E0      		ldi r30,lo8(33)
+ 251 00da 84E8      		ldi r31,hi8(33)
+ 252 00dc 8083      		ld r24,Z
+ 253               		mov r24,r24
+ 195:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 254               	8(0)
+ 255               		andi r24,lo8(248)
+ 256 00de E6E5      		andi r25,hi8(248)
+ 257 00e0 F0E0      		cpi r24,64
+ 258 00e2 8081      		cpc r25,__zero_reg__
+ 259 00e4 8823      		breq .L12
+ 196:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MR_SLA_ACK)
+ 261               		ldi r24,lo8(-4)
+ 262               		ldi r25,hi8(-4)
+ 263 00e8 E1E2      		std Y+9,r25
+ 264 00ea F0E0      		std Y+8,r24
+ 265 00ec 8081      		rjmp .L7
+ 266 00ee 882F      	.L12:
+ 268 00f2 887F      	.LM21:
+ 269 00f4 9070      		ldi r30,lo8(86)
+ 270 00f6 8034      		ldi r31,hi8(86)
+ 271 00f8 9105      		ldi r24,lo8(-124)
+ 272 00fa 01F0      		st Z,r24
+ 197:avr_twi.c     **** 		return -4; // ACK
+ 273               	,202,.LM22-.LFBB2
+ 274               	.LM22:
+ 275 00fc 8CEF      		std Y+2,__zero_reg__
+ 276 00fe 9FEF      		std Y+1,__zero_reg__
+ 277 0100 9987      		rjmp .L13
+ 278 0102 8887      	.L16:
+ 280               	.LM23:
+ 198:avr_twi.c     **** 
+ 199:avr_twi.c     **** 	TWI_BUS_START_READ();
+ 281               	,Y+4
+ 282               		ldd r25,Y+5
+ 283 0106 E6E5      		movw r18,r24
+ 284 0108 F0E0      		subi r18,lo8(-(-1))
+ 285 010a 84E8      		sbci r19,hi8(-(-1))
+ 286 010c 8083      		ldd r24,Y+1
+ 200:avr_twi.c     **** 
+ 201:avr_twi.c     **** 	int i;
+ 202:avr_twi.c     **** 	for (i = 0; i < len; ++i)
+ 287               	25,Y+2
+ 288               		cp r18,r24
+ 289 010e 1A82      		cpc r19,r25
+ 290 0110 1982      		brne .L14
+ 292               	.LM24:
+ 203:avr_twi.c     **** 	{
+ 204:avr_twi.c     **** 		if (i == len - 1)
+ 293               	26,lo8(86)
+ 294               		ldi r27,hi8(86)
+ 295 0114 8C81      		ldi r30,lo8(86)
+ 296 0116 9D81      		ldi r31,hi8(86)
+ 297 0118 9C01      		ld r24,Z
+ 298 011a 2150      		andi r24,lo8(-65)
+ 299 011c 3040      		st X,r24
+ 300 011e 8981      		rjmp .L15
+ 301 0120 9A81      	.L14:
+ 303 0124 3907      	.LM25:
+ 304 0126 01F4      		ldi r26,lo8(86)
+ 205:avr_twi.c     **** 			TWI_BUS_SET_NACK(); // send NACK
+ 305               	(86)
+ 306               		ldi r30,lo8(86)
+ 307 0128 A6E5      		ldi r31,hi8(86)
+ 308 012a B0E0      		ld r24,Z
+ 309 012c E6E5      		ori r24,lo8(64)
+ 310 012e F0E0      		st X,r24
+ 311 0130 8081      	.L15:
+ 313 0134 8C93      	.LM26:
+ 314 0136 00C0      		ldi r30,lo8(86)
+ 315               		ldi r31,hi8(86)
+ 206:avr_twi.c     **** 		else
+ 207:avr_twi.c     **** 			TWI_BUS_SET_ACK(); // send ACK
+ 316               	tst r24
+ 317               		brge .L15
+ 319 013a B0E0      	.LM27:
+ 320 013c E6E5      		ldi r30,lo8(35)
+ 321 013e F0E0      		ldi r31,hi8(35)
+ 322 0140 8081      		ld r24,Z
+ 323 0142 8064      		ldd r30,Y+6
+ 324 0144 8C93      		ldd r31,Y+7
+ 325               		st Z,r24
+ 208:avr_twi.c     **** 
+ 209:avr_twi.c     **** 		TWI_BUS_WAIT();
+ 326               	,0,212,.LM28-.LFBB2
+ 327               	.LM28:
+ 328 0146 E6E5      		ldd r24,Y+6
+ 329 0148 F0E0      		ldd r25,Y+7
+ 330 014a 8081      		adiw r24,1
+ 331 014c 8823      		std Y+7,r25
+ 332 014e 04F4      		std Y+6,r24
+ 210:avr_twi.c     **** 		*buf = TWDR;
+ 333               		68,0,202,.LM29-.LFBB2
+ 334               	.LM29:
+ 335 0150 E3E2      		ldd r24,Y+1
+ 336 0152 F0E0      		ldd r25,Y+2
+ 337 0154 8081      		adiw r24,1
+ 338 0156 EE81      		std Y+2,r25
+ 339 0158 FF81      		std Y+1,r24
+ 340 015a 8083      	.L13:
+ 211:avr_twi.c     **** 		//printf("%x",*buf);
+ 212:avr_twi.c     **** 		buf++;
+ 341               	,Y+1
+ 342               		ldd r19,Y+2
+ 343 015c 8E81      		ldd r24,Y+4
+ 344 015e 9F81      		ldd r25,Y+5
+ 345 0160 0196      		cp r18,r24
+ 346 0162 9F83      		cpc r19,r25
+ 347 0164 8E83      		brlt .L16
+ 349               	.LM30:
+ 350 0166 8981      		ldi r30,lo8(86)
+ 351 0168 9A81      		ldi r31,hi8(86)
+ 352 016a 0196      		ldi r24,lo8(-108)
+ 353 016c 9A83      		st Z,r24
+ 355               	.LM31:
+ 356 0170 2981      		ldi r24,lo8(1)
+ 357 0172 3A81      		ldi r25,hi8(1)
+ 358 0174 8C81      		std Y+9,r25
+ 359 0176 9D81      		std Y+8,r24
+ 360 0178 2817      	.L7:
+ 361 017a 3907      		ldd r24,Y+8
+ 362 017c 04F0      		ldd r25,Y+9
+ 213:avr_twi.c     **** 	}
+ 214:avr_twi.c     **** 
+ 215:avr_twi.c     **** 	TWI_BUS_STOP();
+ 363               	16
+ 365 017e E6E5      	.LM30:
+ 366 0180 F0E0      		ldi r30,lo8(86)
+ 367 0182 84E9      		ldi r31,hi8(86)
+ 368 0184 8083      		ldi r24,lo8(-108)
+ 216:avr_twi.c     **** 
+ 217:avr_twi.c     **** 	return TRUE;
+ 369               	Y+1
+ 370               		ldd r25,Y+2
+ 371 0186 81E0      		adiw r24,1
+ 372 0188 90E0      		std Y+2,r25
+ 373 018a 9987      		std Y+1,r24
+ 374 018c 8887      	.L13:
+ 375               		ldd r18,Y+1
+ 376 018e 8885      		ldd r19,Y+2
+ 377 0190 9985      		ldd r24,Y+4
+ 378               		ldd r25,Y+5
+ 218:avr_twi.c     **** }
+ 379               	4
+ 380               		cpc r19,r25
+ 381 0192 2996      		brlt .L16
+ 383 0196 F894      	.LM30:
+ 384 0198 DEBF      		ldi r30,lo8(86)
+ 385 019a 0FBE      		ldi r31,hi8(86)
+ 386 019c CDBF      		ldi r24,lo8(-108)
+ 387 019e CF91      		st Z,r24
+ 389 01a2 0895      	.LM31:
+ 390               		ldi r24,lo8(1)
+ 391               		ldi r25,hi8(1)
+ 392               		std Y+9,r25
+ 393               		std Y+8,r24
+ 394               	.L7:
+ 395               		ldd r24,Y+8
+ 396               		ldd r25,Y+9
+ 397               	/* epilogue start */
+ 399               	.LM32:
+ 400               		adiw r28,9
+ 401               		in __tmp_reg__,__SREG__
+ 219:avr_twi.c     **** 
+ 220:avr_twi.c     **** int avr_cy2239x_write_buffer(uint8_t addr, uint8_t len, uint8_t* buf)
+ 221:avr_twi.c     **** {
+ 402               	24
+ 404               	.LM31:
+ 405 01a4 DF93      		ldi r24,lo8(1)
+ 406 01a6 CF93      		ldi r25,hi8(1)
+ 407 01a8 CDB7      		std Y+9,r25
+ 408 01aa DEB7      		std Y+8,r24
+ 409 01ac 2797      	.L7:
+ 410 01ae 0FB6      		ldd r24,Y+8
+ 411 01b0 F894      		ldd r25,Y+9
+ 412 01b2 DEBF      	/* epilogue start */
+ 414 01b6 CDBF      	.LM32:
+ 415               		adiw r28,9
+ 416               		in __tmp_reg__,__SREG__
+ 417 01b8 8A83      		cli
+ 418 01ba 6B83      		out __SP_H__,r29
+ 419 01bc 5D83      		out __SREG__,__tmp_reg__
+ 420 01be 4C83      		out __SP_L__,r28
+ 222:avr_twi.c     **** 	TWI_BUS_START(); // start
+ 421               	
+ 422               		std Y+9,r25
+ 423 01c0 E6E5      		std Y+8,r24
+ 424 01c2 F0E0      	.L7:
+ 425 01c4 84EA      		ldd r24,Y+8
+ 426 01c6 8083      		ldd r25,Y+9
+ 427               	/* epilogue start */
+ 223:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 428               	M30-.LFBB2
+ 429               	.LM30:
+ 430 01c8 E6E5      		ldi r30,lo8(86)
+ 431 01ca F0E0      		ldi r31,hi8(86)
+ 432 01cc 8081      		ldi r24,lo8(-108)
+ 433 01ce 8823      		st Z,r24
+ 224:avr_twi.c     **** 
+ 225:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(TWI_SLA_ADDR_CY2293X | TW_WRITE); // control byte
+ 435               		std Y+1,r24
+ 436               	.L13:
+ 437 01d2 E3E2      		ldd r18,Y+1
+ 438 01d4 F0E0      		ldd r19,Y+2
+ 439 01d6 82ED      		ldd r24,Y+4
+ 440 01d8 8083      		ldd r25,Y+5
+ 441 01da E6E5      		cp r18,r24
+ 442 01dc F0E0      		cpc r19,r25
+ 443 01de 84E8      		brlt .L16
+ 445               	.LM30:
+ 226:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 446               	8(86)
+ 447               		ldi r31,hi8(86)
+ 448 01e2 E6E5      		ldi r24,lo8(-108)
+ 449 01e4 F0E0      		st Z,r24
+ 451 01e8 8823      	.LM31:
+ 452 01ea 04F4      		ldi r24,lo8(1)
+ 227:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_SLA_ACK)
+ 453               	18,Y+1
+ 454               		ldd r19,Y+2
+ 455 01ec E1E2      		ldd r24,Y+4
+ 456 01ee F0E0      		ldd r25,Y+5
+ 457 01f0 8081      		cp r18,r24
+ 458 01f2 882F      		cpc r19,r25
+ 459 01f4 90E0      		brlt .L16
+ 461 01f8 9070      	.LM30:
+ 462 01fa 8831      		ldi r30,lo8(86)
+ 463 01fc 9105      		ldi r31,hi8(86)
+ 464 01fe 01F0      		ldi r24,lo8(-108)
+ 228:avr_twi.c     **** 		return -1; // ACK
+ 465               	Y+1
+ 466               		ldd r25,Y+2
+ 467 0200 8FEF      		adiw r24,1
+ 468 0202 9FEF      		std Y+2,r25
+ 469 0204 9F83      		std Y+1,r24
+ 470 0206 8E83      	.L13:
+ 471 0208 00C0      		ldd r18,Y+1
+ 472               		ldd r19,Y+2
+ 229:avr_twi.c     **** 
+ 230:avr_twi.c     **** 	TWI_BUS_WRITE_BYTE(addr & 0xFF); // address low byte
+ 473               	,Y+4
+ 474               		ldd r25,Y+5
+ 475 020a E3E2      		cp r18,r24
+ 476 020c F0E0      		cpc r19,r25
+ 477 020e 8A81      		brlt .L16
+ 479 0212 E6E5      	.LM30:
+ 480 0214 F0E0      		ldi r30,lo8(86)
+ 481 0216 84E8      		ldi r31,hi8(86)
+ 482 0218 8083      		ldi r24,lo8(-108)
+ 483               		st Z,r24
+ 231:avr_twi.c     **** 	TWI_BUS_WAIT();
+ 484               	5,Y+2
+ 485               		adiw r24,1
+ 486 021a E6E5      		std Y+2,r25
+ 487 021c F0E0      		std Y+1,r24
+ 488 021e 8081      	.L13:
+ 489 0220 8823      		ldd r18,Y+1
+ 490 0222 04F4      		ldd r19,Y+2
+ 232:avr_twi.c     **** 	if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+ 491               	4,Y+4
+ 492               		ldd r25,Y+5
+ 493 0224 E1E2      		cp r18,r24
+ 494 0226 F0E0      		cpc r19,r25
+ 495 0228 8081      		brlt .L16
+ 497 022c 90E0      	.LM30:
+ 498 022e 887F      		ldi r30,lo8(86)
+ 499 0230 9070      		ldi r31,hi8(86)
+ 500 0232 8832      		ldi r24,lo8(-108)
+ 501 0234 9105      		st Z,r24
+ 233:avr_twi.c     **** 		return -3; // ACK
+ 503               		std Y+1,r24
+ 504               	.L13:
+ 505 0238 8DEF      		ldd r18,Y+1
+ 506 023a 9FEF      		ldd r19,Y+2
+ 507 023c 9F83      		ldd r24,Y+4
+ 508 023e 8E83      		ldd r25,Y+5
+ 509 0240 00C0      		cp r18,r24
+ 510               		cpc r19,r25
+ 234:avr_twi.c     **** 
+ 235:avr_twi.c     **** 	uint8_t i;
+ 236:avr_twi.c     **** 	for (i = 0; i < len; ++i)
+ 511               	16
+ 513 0242 1982      	.LM30:
+ 514 0244 00C0      		ldi r30,lo8(86)
+ 515               		ldi r31,hi8(86)
+ 237:avr_twi.c     **** 	{
+ 238:avr_twi.c     **** 		//printf("%x",*buf);
+ 239:avr_twi.c     **** 		TWI_BUS_WRITE_BYTE(*buf);
+ 516               	BB2
+ 517               	.LM29:
+ 518 0246 A3E2      		ldd r24,Y+1
+ 519 0248 B0E0      		ldd r25,Y+2
+ 520 024a EC81      		adiw r24,1
+ 521 024c FD81      		std Y+2,r25
+ 522 024e 8081      		std Y+1,r24
+ 523 0250 8C93      	.L13:
+ 524 0252 E6E5      		ldd r18,Y+1
+ 525 0254 F0E0      		ldd r19,Y+2
+ 526 0256 84E8      		ldd r24,Y+4
+ 527 0258 8083      		ldd r25,Y+5
+ 528               		cp r18,r24
+ 240:avr_twi.c     **** 		TWI_BUS_WAIT();
+ 529               		brlt .L16
+ 531 025a E6E5      	.LM30:
+ 532 025c F0E0      		ldi r30,lo8(86)
+ 533 025e 8081      		ldi r31,hi8(86)
+ 534 0260 8823      		ldi r24,lo8(-108)
+ 535 0262 04F4      		st Z,r24
+ 241:avr_twi.c     **** 		if (TWI_BUS_STATUS != TW_MT_DATA_ACK)
+ 536               	5,Y+2
+ 537               		adiw r24,1
+ 538 0264 E1E2      		std Y+2,r25
+ 539 0266 F0E0      		std Y+1,r24
+ 540 0268 8081      	.L13:
+ 541 026a 882F      		ldd r18,Y+1
+ 542 026c 90E0      		ldd r19,Y+2
+ 543 026e 887F      		ldd r24,Y+4
+ 544 0270 9070      		ldd r25,Y+5
+ 545 0272 8832      		cp r18,r24
+ 546 0274 9105      		cpc r19,r25
+ 547 0276 01F0      		brlt .L16
+ 242:avr_twi.c     **** 			return -4; // ACK
+ 548               	,215,.LM30-.LFBB2
+ 549               	.LM30:
+ 550 0278 8CEF      		ldi r30,lo8(86)
+ 551 027a 9FEF      		ldi r31,hi8(86)
+ 552 027c 9F83      		ldi r24,lo8(-108)
+ 553 027e 8E83      		st Z,r24
+ 555               	.LM31:
+ 243:avr_twi.c     **** 		buf++;
+ 556               	,r24
+ 557               	.L13:
+ 558 0282 8C81      		ldd r18,Y+1
+ 559 0284 9D81      		ldd r19,Y+2
+ 560 0286 0196      		ldd r24,Y+4
+ 561 0288 9D83      		ldd r25,Y+5
+ 562 028a 8C83      		cp r18,r24
+ 563               		cpc r19,r25
+ 564               		brlt .L16
+ 566 028e 8F5F      	.LM30:
+ 567 0290 8983      		ldi r30,lo8(86)
+ 568               		ldi r31,hi8(86)
+ 569 0292 9981      		ldi r24,lo8(-108)
+ 570 0294 8B81      		st Z,r24
+ 572 0298 00F0      	.LM31:
+ 244:avr_twi.c     **** 	}
+ 245:avr_twi.c     **** 
+ 246:avr_twi.c     **** 	TWI_BUS_STOP();
+ 573               	ldi r25,hi8(1)
+ 574               		std Y+9,r25
+ 575 029a E6E5      		std Y+8,r24
+ 576 029c F0E0      	.L7:
+ 577 029e 84E9      		ldd r24,Y+8
+ 578 02a0 8083      		ldd r25,Y+9
+ 247:avr_twi.c     **** 
+ 248:avr_twi.c     **** 	return TRUE;
+ 579               	16
+ 581 02a2 81E0      	.LM30:
+ 582 02a4 90E0      		ldi r30,lo8(86)
+ 583 02a6 9F83      		ldi r31,hi8(86)
+ 584 02a8 8E83      		ldi r24,lo8(-108)
+ 585               		st Z,r24
+ 587 02ac 9F81      	.LM31:
+ 588               		ldi r24,lo8(1)
+ 249:avr_twi.c     **** }
+ 589               	18,Y+1
+ 590               		ldd r19,Y+2
+ 591 02ae 2796      		ldd r24,Y+4
+ 592 02b0 0FB6      		ldd r25,Y+5
+ 593 02b2 F894      		cp r18,r24
+ 594 02b4 DEBF      		cpc r19,r25
+ 595 02b6 0FBE      		brlt .L16
+ 597 02ba CF91      	.LM30:
+ 598 02bc DF91      		ldi r30,lo8(86)
+ 599 02be 0895      		ldi r31,hi8(86)
+ 600               		ldi r24,lo8(-108)
+ 601               		st Z,r24
+ 603               	.LM31:
+ 604               		ldi r24,lo8(1)
+ 605               		ldi r25,hi8(1)
+ 606               		std Y+9,r25
+DEFINED SYMBOLS
+                            *ABS*:00000000 avr_twi.c
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:2      *ABS*:0000003f __SREG__
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:5      *ABS*:00000034 __CCP__
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:83     .text:00000000 avr_cy2239x_init
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:118    .text:0000001c avr_cy2239x_read_buffer
+C:\Users\Steven\AppData\Local\Temp/cczOA3lf.s:401    .text:000001a4 avr_cy2239x_write_buffer
+
+NO UNDEFINED SYMBOLS

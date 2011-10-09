@@ -1,0 +1,9 @@
+ERC control (07/11/2009 09:30:54)
+
+***** Sheet / (Root) 
+ERC: Warning: Pin power_out connected to Pin BiDi (net 32) (X= 6.150 inches, Y= 8.450 inches
+ERC: Warning: Pin BiDi connected to Pin power_out (net 32) (X= 3.650 inches, Y= 3.400 inches
+ERC: Warning Pin power_in not driven (Net 29) (X= 1.550 inches, Y= 2.000 inches
+ERC: Warning Pin power_in not driven (Net 23) (X= 3.500 inches, Y= 8.300 inches
+
+ >> Errors ERC: 4

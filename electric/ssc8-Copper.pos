@@ -1,0 +1,8 @@
+### Module positions - created on 05/11/2009 21:37:46 ###
+### Printed by PcbNew version PCBnew (20090216-final)
+## Unit = inches, Angle = deg.
+## Side : Copper
+# Ref    Val                  PosX       PosY        Rot     Side
+C7       100nF               -0.8700     0.8950     270.0    Copper
+C10      100nF               -0.9600     0.8950     270.0    Copper
+## End

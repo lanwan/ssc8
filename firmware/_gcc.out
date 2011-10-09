@@ -1,0 +1,13 @@
+
+-------- begin --------
+avr-gcc (WinAVR 20090313) 4.3.2
+Copyright (C) 2008 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Linking: ssc_com.elf
+avr-gcc -mmcu=atmega8 -I. -std=gnu99 -O0 -gstabs -Wa,-adhlns=avr_uart.o -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums  -Wall -Wstrict-prototypes avr_uart.o avr_math.o ssc_main.o avr_twi.o  --output ssc_com.elf -lm -Wl,-Map=ssc_com.map -Wl,--cref
+c:/winavr/bin/../lib/gcc/avr/4.3.2/../../../../avr/bin/ld.exe: ssc_com.elf section .text will not fit in region text
+c:/winavr/bin/../lib/gcc/avr/4.3.2/../../../../avr/bin/ld.exe: region text overflowed by 1096 bytes
+make: *** [ssc_com.elf] Error 1

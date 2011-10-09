@@ -1,0 +1,470 @@
+   1               		.file	"avr_adc.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+  83               	.global	avr_adc_open
+  85               	avr_adc_open:
+   1:avr_adc.c     **** /*
+   2:avr_adc.c     ****  * avr_adc.c
+   3:avr_adc.c     ****  *
+   4:avr_adc.c     ****  *  Created on: 2009-8-19
+   5:avr_adc.c     ****  *      Author: Steven
+   6:avr_adc.c     ****  */
+   7:avr_adc.c     **** 
+   8:avr_adc.c     **** #include "avr_modules.h"
+   9:avr_adc.c     **** 
+  10:avr_adc.c     **** #if USE_AVR_ADC_MODULE
+  11:avr_adc.c     **** 
+  12:avr_adc.c     **** // 右对齐方式读取
+  13:avr_adc.c     **** int8_t avr_adc_open(int8_t aref, int8_t channel){
+  86               	l .
+  87               		in r28,__SP_L__
+  88               		in r29,__SP_H__
+  89 0000 DF93      	/* prologue: function */
+  90 0002 CF93      	/* frame size = 6 */
+  91 0004 00D0      		std Y+2,r24
+  92 0006 00D0      		std Y+3,r22
+  94 000a CDB7      	.LM1:
+  95 000c DEB7      		std Y+1,__zero_reg__
+  97               	.LM2:
+  98 000e 8A83      		ldd r24,Y+2
+  99 0010 6B83      		mov r18,r24
+  14:avr_adc.c     **** 
+  15:avr_adc.c     **** 	uint8_t admux = 0;
+ 100               	 r18,7
+ 101               		com r19
+ 102 0012 1982      		std Y+6,r19
+  16:avr_adc.c     **** 
+  17:avr_adc.c     **** 	switch(aref){
+ 103               	d Y+5,r18
+ 104               		ldd r24,Y+5
+ 105 0014 8A81      		ldd r25,Y+6
+ 106 0016 282F      		cpi r24,1
+ 107 0018 3327      		cpc r25,__zero_reg__
+ 108 001a 27FD      		breq .L4
+ 109 001c 3095      		ldd r18,Y+5
+ 110 001e 3E83      		ldd r19,Y+6
+ 111 0020 2D83      		cpi r18,3
+ 112 0022 8D81      		cpc r19,__zero_reg__
+ 113 0024 9E81      		breq .L5
+ 114 0026 8130      		ldd r24,Y+5
+ 115 0028 9105      		ldd r25,Y+6
+ 116 002a 01F0      		sbiw r24,0
+ 117 002c 2D81      		brne .L9
+ 118 002e 3E81      	.L3:
+ 120 0032 3105      	.LM3:
+ 121 0034 01F0      		std Y+1,__zero_reg__
+ 122 0036 8D81      		rjmp .L6
+ 123 0038 9E81      	.L4:
+ 125 003c 01F4      	.LM4:
+ 126               		ldd r24,Y+1
+  18:avr_adc.c     **** 	case AVR_ADC_AREF_SRC_EXTERNAL:
+  19:avr_adc.c     **** 		admux = 0x00;
+ 127               	1,r24
+ 128               		rjmp .L6
+ 129 003e 1982      	.L5:
+ 131               	.LM5:
+  20:avr_adc.c     **** 		break;
+  21:avr_adc.c     **** 	case AVR_ADC_AREF_SRC_VCC:
+  22:avr_adc.c     **** 		admux |= _BV(REFS0);
+ 132               	r24,Y+1
+ 133               		ori r24,lo8(-64)
+ 134 0042 8981      		std Y+1,r24
+ 135 0044 8064      		rjmp .L6
+ 136 0046 8983      	.L9:
+ 138               	.LM6:
+  23:avr_adc.c     **** 		break;
+  24:avr_adc.c     **** 	case AVR_ADC_AREF_SRC_INNER2_5V:
+  25:avr_adc.c     **** 		admux |= _BV(REFS0) | _BV(REFS1);
+ 139               	4,__zero_reg__
+ 140               		rjmp .L7
+ 141 004a 8981      	.L6:
+ 143 004e 8983      	.LM7:
+ 144 0050 00C0      		ldd r25,Y+1
+ 145               		ldd r24,Y+3
+  26:avr_adc.c     **** 		break;
+  27:avr_adc.c     **** 	default:
+  28:avr_adc.c     **** 		return FALSE;
+ 146               	,r25
+ 147               		std Y+1,r24
+ 149 0054 00C0      	.LM8:
+ 150               		ldi r30,lo8(39)
+  29:avr_adc.c     **** 	}
+  30:avr_adc.c     **** 
+  31:avr_adc.c     **** 	admux |= channel;
+ 151               	r31,hi8(39)
+ 152               		ldd r24,Y+1
+ 153 0056 9981      		st Z,r24
+ 155 005a 892B      	.LM9:
+ 156 005c 8983      		ldi r30,lo8(38)
+  32:avr_adc.c     **** 
+  33:avr_adc.c     **** 	ADMUX = admux;
+ 157               	31,hi8(38)
+ 158               		ldi r24,lo8(-128)
+ 159 005e E7E2      		st Z,r24
+ 161 0062 8981      	.LM10:
+ 162 0064 8083      		ldi r25,lo8(1)
+  34:avr_adc.c     **** 
+  35:avr_adc.c     **** 	ADCSRA = _BV(ADEN);	//使能 ADC，单次转换模式
+ 163               	+4,r25
+ 164               	.L7:
+ 165 0066 E6E2      		ldd r24,Y+4
+ 166 0068 F0E0      	/* epilogue start */
+ 168 006c 8083      	.LM11:
+  36:avr_adc.c     **** 
+  37:avr_adc.c     **** 	return TRUE;
+ 169               	r28,6
+ 170               		in __tmp_reg__,__SREG__
+ 171 006e 91E0      		cli
+ 172 0070 9C83      		out __SP_H__,r29
+ 173               		out __SREG__,__tmp_reg__
+ 174 0072 8C81      		out __SP_L__,r28
+ 175               		pop r28
+  38:avr_adc.c     **** }
+ 176               	9
+ 177               		ret
+ 182 007c 0FBE      	.Lscope1:
+ 184 0080 CF91      	.global	avr_adc_close
+ 186 0084 0895      	avr_adc_close:
+ 188               	.LM12:
+ 189               	.LFBB2:
+ 190               		push r29
+ 191               		push r28
+ 192               		in r28,__SP_L__
+ 193               		in r29,__SP_H__
+ 194               	/* prologue: function */
+ 195               	/* frame size = 0 */
+  39:avr_adc.c     **** 
+  40:avr_adc.c     **** void avr_adc_close(void){
+ 196               	3-.LFBB2
+ 197               	.LM13:
+ 198               		ldi r30,lo8(38)
+ 199 0086 DF93      		ldi r31,hi8(38)
+ 200 0088 CF93      		st Z,__zero_reg__
+ 201 008a CDB7      	/* epilogue start */
+ 203               	.LM14:
+ 204               		pop r28
+  41:avr_adc.c     **** 	ADCSRA = 0;	//关闭 ADC
+ 205               	SP_L__
+ 206               		in r29,__SP_H__
+ 207 008e E6E2      	/* prologue: function */
+ 208 0090 F0E0      	/* frame size = 0 */
+ 210               	.LM13:
+  42:avr_adc.c     **** }
+ 211               	lose
+ 213 0094 CF91      	avr_adc_close:
+ 215 0098 0895      	.LM12:
+ 216               	.LFBB2:
+ 217               		push r29
+ 218               		push r28
+ 219               		in r28,__SP_L__
+ 220               		in r29,__SP_H__
+ 221               	/* prologue: function */
+ 222               	/* frame size = 0 */
+  43:avr_adc.c     **** 
+  44:avr_adc.c     **** uint16_t avr_adc_read(uint8_t channel){
+ 223               	36,0,0,avr_adc_close
+ 224               	.global	avr_adc_close
+ 226 009a DF93      	avr_adc_close:
+ 228 009e CDB7      	.LM12:
+ 229 00a0 DEB7      	.LFBB2:
+ 230 00a2 6197      		push r29
+ 231 00a4 0FB6      		push r28
+ 232 00a6 F894      		in r28,__SP_L__
+ 233 00a8 DEBF      		in r29,__SP_H__
+ 234 00aa 0FBE      	/* prologue: function */
+ 235 00ac CDBF      	/* frame size = 0 */
+ 237               	.LM13:
+ 238 00ae 898B      		ldi r30,lo8(38)
+  45:avr_adc.c     **** 	uint16_t ret = 0;
+ 239               	c_close, @function
+ 240               	avr_adc_close:
+ 242 00b2 1D82      	.LM12:
+  46:avr_adc.c     **** 	int i = 0;
+ 243               	,128,0,0,1
+ 246 00b6 1B82      	.Lscope1:
+  47:avr_adc.c     **** 
+  48:avr_adc.c     **** 	uint16_t vals[AVR_ADC_AREF_SRC_COVERT_COUNT] = {0};
+ 247               	abs	"avr_adc_close:F(0,15)",36,0,0,avr_adc_close
+ 248               	.global	avr_adc_close
+ 250 00ba FE01      	avr_adc_close:
+ 252 00be DF01      	.LM12:
+ 253 00c0 982F      	.LFBB2:
+ 254 00c2 1D92      		push r29
+ 255 00c4 9A95      		push r28
+ 256 00c6 01F4      		in r28,__SP_L__
+  49:avr_adc.c     **** 
+  50:avr_adc.c     **** 	for(i=0; i<AVR_ADC_AREF_SRC_COVERT_COUNT; ++i){
+ 257               	SP_H__
+ 258               	/* prologue: function */
+ 259 00c8 1C82      	/* frame size = 0 */
+ 261 00cc 00C0      	.LM13:
+ 262               		ldi r30,lo8(38)
+  51:avr_adc.c     **** 		// start first convert
+  52:avr_adc.c     **** 		ADCSRA |= _BV(ADSC);
+ 263               	c_close, @function
+ 264               	avr_adc_close:
+ 266 00d0 B0E0      	.LM12:
+ 267 00d2 E6E2      	.LFBB2:
+ 268 00d4 F0E0      		push r29
+ 269 00d6 8081      		push r28
+ 270 00d8 8064      		in r28,__SP_L__
+ 271 00da 8C93      		in r29,__SP_H__
+ 272 00dc 8CE3      	/* prologue: function */
+ 273 00de 8A83      	/* frame size = 0 */
+ 275               	.LM13:
+ 276               		ldi r30,lo8(38)
+ 277               		ldi r31,hi8(38)
+   1:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** /* Copyright (c) 2002, Marek Michalkiewicz
+   2:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    Copyright (c) 2007 Joerg Wunsch
+   3:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    All rights reserved.
+   4:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+   5:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    Redistribution and use in source and binary forms, with or without
+   6:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    modification, are permitted provided that the following conditions are met:
+   7:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+   8:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    * Redistributions of source code must retain the above copyright
+   9:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****      notice, this list of conditions and the following disclaimer.
+  10:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  11:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    * Redistributions in binary form must reproduce the above copyright
+  12:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****      notice, this list of conditions and the following disclaimer in
+  13:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****      the documentation and/or other materials provided with the
+  14:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****      distribution.
+  15:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  16:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****    * Neither the name of the copyright holders nor the names of
+  17:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****      contributors may be used to endorse or promote products derived
+  18:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****      from this software without specific prior written permission.
+  19:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  20:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  21:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  22:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  23:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  24:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  25:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  26:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  27:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  28:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  29:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  30:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****   POSSIBILITY OF SUCH DAMAGE. */
+  31:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  32:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** /* $Id: delay_basic.h,v 1.1 2007/05/13 21:23:20 joerg_wunsch Exp $ */
+  33:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  34:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** #ifndef _UTIL_DELAY_BASIC_H_
+  35:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** #define _UTIL_DELAY_BASIC_H_ 1
+  36:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  37:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** #include <inttypes.h>
+  38:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  39:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** /** \file */
+  40:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** /** \defgroup util_delay_basic <util/delay_basic.h>: Basic busy-wait delay loops
+  41:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     \code
+  42:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     #include <util/delay_basic.h>
+  43:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     \endcode
+  44:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  45:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     The functions in this header file implement simple delay loops
+  46:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     that perform a busy-waiting.  They are typically used to
+  47:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     facilitate short delays in the program execution.  They are
+  48:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     implemented as count-down loops with a well-known CPU cycle
+  49:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     count per loop iteration.  As such, no other processing can
+  50:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     occur simultaneously.  It should be kept in mind that the
+  51:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     functions described here do not disable interrupts.
+  52:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  53:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     In general, for long delays, the use of hardware timers is
+  54:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     much preferrable, as they free the CPU, and allow for
+  55:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     concurrent processing of other events while the timer is
+  56:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     running.  However, in particular for very short delays, the
+  57:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     overhead of setting up a hardware timer is too much compared
+  58:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     to the overall delay time.
+  59:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  60:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     Two inline functions are provided for the actual delay algorithms.
+  61:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  62:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** */
+  63:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  64:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** #if !defined(__DOXYGEN__)
+  65:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** static inline void _delay_loop_1(uint8_t __count) __attribute__((always_inline));
+  66:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** static inline void _delay_loop_2(uint16_t __count) __attribute__((always_inline));
+  67:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** #endif
+  68:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  69:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** /** \ingroup util_delay_basic
+  70:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  71:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     Delay loop using an 8-bit counter \c __count, so up to 256
+  72:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     iterations are possible.  (The value 256 would have to be passed
+  73:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     as 0.)  The loop executes three CPU cycles per iteration, not
+  74:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     including the overhead the compiler needs to setup the counter
+  75:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     register.
+  76:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 
+  77:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     Thus, at a CPU speed of 1 MHz, delays of up to 768 microseconds
+  78:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h ****     can be achieved.
+  79:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** */
+  80:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** void
+  81:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** _delay_loop_1(uint8_t __count)
+  82:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** {
+  83:c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h **** 	__asm__ volatile (
+ 278               	
+ 279               	avr_adc_close:
+ 281               	.LM12:
+ 282               	.LFBB2:
+ 283 00e2 8A95      		push r29
+ 284 00e4 01F4      		push r28
+ 285               		in r28,__SP_L__
+ 286               		in r29,__SP_H__
+ 287 00e6 8A83      	/* prologue: function */
+ 288 00e8 00C0      	/* frame size = 0 */
+ 290               	.LM13:
+ 291               		ldi r30,lo8(38)
+  53:avr_adc.c     **** 		_delay_loop_1(60);
+  54:avr_adc.c     **** 
+  55:avr_adc.c     **** 		while( ADCSRA & _BV(ADSC) ) _delay_loop_1(60);
+ 292               	c_close, @function
+ 293               	avr_adc_close:
+ 295 00ec 8983      	.LM12:
+ 296               	.LFBB2:
+ 297               		push r29
+ 298               		push r28
+ 299               		in r28,__SP_L__
+ 300               		in r29,__SP_H__
+ 301               	/* prologue: function */
+ 302               	/* frame size = 0 */
+ 304 00ee 8981      	.LM13:
+ 305               		ldi r30,lo8(38)
+ 306               		ldi r31,hi8(38)
+ 307 00f0 8A95      		st Z,__zero_reg__
+ 308 00f2 01F4      	/* epilogue start */
+ 310               	.LM14:
+ 311 00f4 8983      		pop r28
+ 312               		pop r29
+ 313               		ret
+ 315               	.Lscope2:
+ 318               	.global	avr_adc_read
+ 320 00f8 F0E0      	avr_adc_read:
+ 322 00fc 882F      	.LM15:
+ 323 00fe 90E0      	.LFBB3:
+ 324 0100 8074      		push r29
+ 325 0102 9070      		push r28
+ 326 0104 0097      		in r28,__SP_L__
+ 327 0106 01F4      		in r29,__SP_H__
+  56:avr_adc.c     **** 		vals[i] = ADCL;
+ 328               	adc_read
+ 330 0108 2B81      	.global	avr_adc_read
+ 332 010c E4E2      	avr_adc_read:
+ 334 0110 8081      	.LM15:
+ 335 0112 482F      	.LFBB3:
+ 336 0114 50E0      		push r29
+ 337 0116 220F      		push r28
+ 338 0118 331F      		in r28,__SP_L__
+ 339 011a CE01      		in r29,__SP_H__
+ 340 011c 0196      		sbiw r28,17
+ 341 011e 820F      		in __tmp_reg__,__SREG__
+ 342 0120 931F      		cli
+ 343 0122 FC01      		out __SP_H__,r29
+ 344 0124 3696      		out __SREG__,__tmp_reg__
+ 345 0126 5183      		out __SP_L__,r28
+ 346 0128 4083      	/* prologue: function */
+  57:avr_adc.c     **** 		vals[i] |= (ADCH<<8);
+ 347               	B3
+ 348               	.LM15:
+ 349 012a 6B81      	.LFBB3:
+ 350 012c 7C81      		push r29
+ 351 012e 8B81      		push r28
+ 352 0130 9C81      		in r28,__SP_L__
+ 353 0132 9C01      		in r29,__SP_H__
+ 354 0134 220F      		sbiw r28,17
+ 355 0136 331F      		in __tmp_reg__,__SREG__
+ 356 0138 CE01      		cli
+ 357 013a 0196      		out __SP_H__,r29
+ 358 013c 820F      		out __SREG__,__tmp_reg__
+ 359 013e 931F      		out __SP_L__,r28
+ 360 0140 FC01      	/* prologue: function */
+ 361 0142 3696      	/* frame size = 17 */
+ 362 0144 2081      		std Y+17,r24
+ 364 0148 E5E2      	.LM16:
+ 365 014a F0E0      		std Y+6,__zero_reg__
+ 366 014c 8081      		std Y+5,__zero_reg__
+ 368 0150 90E0      	.LM17:
+ 369 0152 982F      		std Y+4,__zero_reg__
+ 370 0154 8827      		std Y+3,__zero_reg__
+ 372 0158 482B      	.LM18:
+ 373 015a 592B      		ldi r24,lo8(10)
+ 374 015c 9B01      		movw r30,r28
+ 375 015e 220F      		adiw r30,7
+ 376 0160 331F      		movw r26,r30
+ 377 0162 CE01      		mov r25,r24
+ 378 0164 0196      		st X+,__zero_reg__
+ 379 0166 820F      	        dec r25
+ 380 0168 931F      		brne .-6
+ 382 016c 3696      	.LM19:
+ 383 016e 5183      		std Y+4,__zero_reg__
+ 384 0170 4083      		std Y+3,__zero_reg__
+ 385               		rjmp .L13
+ 386               	.L16:
+ 388 0174 9C81      	.LM20:
+ 389 0176 0196      		ldi r26,lo8(38)
+ 390 0178 9C83      		ldi r27,hi8(38)
+ 391 017a 8B83      		ldi r30,lo8(38)
+ 392               		ldi r31,hi8(38)
+ 393 017c 8B81      		ld r24,Z
+ 394 017e 9C81      		ori r24,lo8(64)
+ 395 0180 8530      		st X,r24
+ 396 0182 9105      		ldi r24,lo8(60)
+ 397 0184 04F4      		std Y+2,r24
+ 398 0186 00C0      	.LBB6:
+  58:avr_adc.c     **** 	}
+  59:avr_adc.c     **** 
+  60:avr_adc.c     **** 	ret = avr_math_maverage((uint16_t*)&vals[0], (uint16_t*)&vals[AVR_ADC_AREF_SRC_COVERT_COUNT - 1]);
+ 399               	2,.LM20-.LFBB3
+ 400               	.LM20:
+ 401 0188 AE01      		ldi r26,lo8(38)
+ 402 018a 495F      		ldi r27,hi8(38)
+ 403 018c 5F4F      		ldi r30,lo8(38)
+ 404 018e CE01      		ldi r31,hi8(38)
+ 405 0190 0796      		ld r24,Z
+ 406 0192 9C01      		ori r24,lo8(64)
+ 407 0194 285F      		st X,r24
+ 408 0196 3F4F      		ldi r24,lo8(60)
+ 409 0198 CA01      		std Y+2,r24
+ 410 019a B901      	.LBB6:
+ 411 019c 00D0      	.LBB7:
+ 413 01a0 8D83      	.Ltext1:
+  61:avr_adc.c     **** 
+  62:avr_adc.c     **** 	return ret;
+ 414               		ori r24,lo8(64)
+ 415               		st X,r24
+ 416 01a2 8D81      		ldi r24,lo8(60)
+ 417 01a4 9E81      		std Y+2,r24
+ 418               	.LBB6:
+  63:avr_adc.c     **** }
+ 419               	2,.LM20-.LFBB3
+ 420               	.LM20:
+ 421 01a6 6196      		ldi r26,lo8(38)
+ 422 01a8 0FB6      		ldi r27,hi8(38)
+ 423 01aa F894      		ldi r30,lo8(38)
+ 424 01ac DEBF      		ldi r31,hi8(38)
+ 425 01ae 0FBE      		ld r24,Z
+ 426 01b0 CDBF      		ori r24,lo8(64)
+ 427 01b2 CF91      		st X,r24
+ 428 01b4 DF91      		ldi r24,lo8(60)
+ 429 01b6 0895      		std Y+2,r24
+ 430               	.LBB6:
+ 431               	.LBB7:
+ 433               	.Ltext1:
+ 435               	.LM21:
+ 436               		ldd r24,Y+2
+ 437               	/* #APP */
+ 438               	 ;  83 "c:/winavr/lib/gcc/../../avr/include/util/delay_basic.h" 1
+DEFINED SYMBOLS
+                            *ABS*:00000000 avr_adc.c
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:2      *ABS*:0000003f __SREG__
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:5      *ABS*:00000034 __CCP__
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:85     .text:00000000 avr_adc_open
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:195    .text:00000086 avr_adc_close
+C:\Users\Steven\AppData\Local\Temp/ccqBaweO.s:222    .text:0000009a avr_adc_read
+
+UNDEFINED SYMBOLS
+avr_math_maverage

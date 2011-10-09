@@ -1,0 +1,288 @@
+   1               		.file	"avr_math.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+   9               		.text
+  10               	.Ltext0:
+  83               	.global	avr_math_maverage
+  85               	avr_math_maverage:
+   1:avr_math.c    **** 
+   2:avr_math.c    **** #include "avr_modules.h"
+   3:avr_math.c    **** 
+   4:avr_math.c    **** #if USE_AVR_MATH_MODULE
+   5:avr_math.c    **** 
+   6:avr_math.c    **** #if USE_AVR_MATH_SELECT_SORT
+   7:avr_math.c    **** void avr_math_select_sort(uint16_t* start, uint16_t* stop) {
+   8:avr_math.c    ****     if ( start == 0 || stop == 0 ) return;
+   9:avr_math.c    **** 
+  10:avr_math.c    ****     uint16_t temp;
+  11:avr_math.c    ****     uint16_t* pcur = start;
+  12:avr_math.c    ****     uint16_t* pmov = pcur + 1;
+  13:avr_math.c    **** 
+  14:avr_math.c    ****     do {
+  15:avr_math.c    ****         if ( *pcur > *pmov ) {
+  16:avr_math.c    ****             temp = *pcur;
+  17:avr_math.c    ****             *pcur = *pmov;
+  18:avr_math.c    ****             *pmov = temp;
+  19:avr_math.c    ****         }
+  20:avr_math.c    **** 
+  21:avr_math.c    ****         if ( pmov == stop ) {
+  22:avr_math.c    ****             pcur++;
+  23:avr_math.c    ****             pmov = pcur;
+  24:avr_math.c    ****         } else
+  25:avr_math.c    ****             pmov++;
+  26:avr_math.c    **** 
+  27:avr_math.c    ****     } while ( pcur < stop );
+  28:avr_math.c    **** }
+  29:avr_math.c    **** 
+  30:avr_math.c    **** #endif // USE_AVR_MATH_SELECT_SORT
+  31:avr_math.c    **** 
+  32:avr_math.c    **** #if USE_AVR_MATH_EACH_ADD
+  33:avr_math.c    **** void avr_math_each_add(uint16_t* start, uint16_t* stop, uint16_t data) {
+  34:avr_math.c    ****     if ( start == 0 || stop == 0 ) return;
+  35:avr_math.c    **** 
+  36:avr_math.c    ****     do {
+  37:avr_math.c    ****         *start++ += data;
+  38:avr_math.c    ****     } while ( start != stop );
+  39:avr_math.c    **** 
+  40:avr_math.c    **** }
+  41:avr_math.c    **** 
+  42:avr_math.c    **** #endif // USE_AVR_MATH_EACH_ADD
+  43:avr_math.c    **** 
+  44:avr_math.c    **** #if USE_AVR_MATH_MAVERAGE
+  45:avr_math.c    **** /**
+  46:avr_math.c    ****  * moving average, it will remove one max and one min value and compute the avrage value
+  47:avr_math.c    ****  * @param vals	data vector
+  48:avr_math.c    ****  * @param len	data vector length
+  49:avr_math.c    ****  * @return	avrage value
+  50:avr_math.c    ****  */
+  51:avr_math.c    **** uint16_t avr_math_maverage(uint16_t* start, uint16_t* stop){
+  86               	9,__SP_H__
+  87               		sbiw r28,16
+  88               		in __tmp_reg__,__SREG__
+  89 0000 DF93      		cli
+  90 0002 CF93      		out __SP_H__,r29
+  91 0004 CDB7      		out __SREG__,__tmp_reg__
+  92 0006 DEB7      		out __SP_L__,r28
+  93 0008 6097      	/* prologue: function */
+  94 000a 0FB6      	/* frame size = 16 */
+  95 000c F894      		std Y+12,r25
+  96 000e DEBF      		std Y+11,r24
+  97 0010 0FBE      		std Y+14,r23
+  98 0012 CDBF      		std Y+13,r22
+ 100               	.LM1:
+ 101 0014 9C87      		ldd r24,Y+11
+ 102 0016 8B87      		ldd r25,Y+12
+ 103 0018 7E87      		sbiw r24,0
+ 104 001a 6D87      		breq .L2
+  52:avr_math.c    ****     if ( start == 0 || stop == 0 ) return 0;
+ 105               		out __SREG__,__tmp_reg__
+ 106               		out __SP_L__,r28
+ 107 001c 8B85      	/* prologue: function */
+ 108 001e 9C85      	/* frame size = 16 */
+ 109 0020 0097      		std Y+12,r25
+ 110 0022 01F0      		std Y+11,r24
+ 111 0024 8D85      		std Y+14,r23
+ 112 0026 9E85      		std Y+13,r22
+ 114 002a 01F4      	.LM1:
+ 115               		ldd r24,Y+11
+ 116 002c 188A      		ldd r25,Y+12
+ 117 002e 1F86      		sbiw r24,0
+ 118 0030 00C0      		breq .L2
+ 119               		ldd r24,Y+13
+  53:avr_math.c    **** 
+  54:avr_math.c    **** 	uint16_t sum = 0;
+ 120               	_tmp_reg__
+ 121               		out __SP_L__,r28
+ 122 0032 1A86      	/* prologue: function */
+ 123 0034 1986      	/* frame size = 16 */
+  55:avr_math.c    **** 	uint16_t max_value, min_value;
+  56:avr_math.c    **** 	uint16_t* p = start;
+ 124               		68,0,51,.LM0-.LFBB1
+ 125               	.LM0:
+ 126 0036 8B85      	.LFBB1:
+ 127 0038 9C85      		push r29
+ 128 003a 9C83      		push r28
+ 129 003c 8B83      		in r28,__SP_L__
+  57:avr_math.c    **** 	uint16_t len = 0;
+ 130               	math_maverage
+ 133 0040 1982      	.global	avr_math_maverage
+  58:avr_math.c    **** 
+  59:avr_math.c    **** 	max_value = min_value = *p;
+ 134               	(0,11),8,8;;",128,0,0,0
+ 142 004e 8D81      	.global	avr_math_maverage
+ 144 0052 9887      	avr_math_maverage:
+ 146 0056 00C0      	.LM0:
+ 147               	.LFBB1:
+  60:avr_math.c    **** 	while(p != stop){
+  61:avr_math.c    **** 		if( *p > max_value ){
+ 148               	s	"avr_math_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 151 005a FC81      	.global	avr_math_maverage
+ 153 005e 3181      	avr_math_maverage:
+ 155 0062 9885      	.LM0:
+ 156 0064 8217      	.LFBB1:
+ 157 0066 9307      		push r29
+ 158 0068 00F4      		push r28
+  62:avr_math.c    **** 			max_value = *p;
+ 159               	(2,4)",36,0,0,avr_math_maverage
+ 162 006c FC81      	.global	avr_math_maverage
+ 164 0070 9181      	avr_math_maverage:
+ 166 0074 8F83      	.LM0:
+ 167               	.LFBB1:
+  63:avr_math.c    **** 		}
+  64:avr_math.c    **** 		if( *p < min_value){
+ 168               	s	"avr_math_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 171 0078 FC81      	.global	avr_math_maverage
+ 173 007c 3181      	avr_math_maverage:
+ 175 0080 9E81      	.LM0:
+ 176 0082 2817      	.LFBB1:
+ 177 0084 3907      		push r29
+ 178 0086 00F4      		push r28
+  65:avr_math.c    **** 			min_value = *p;
+ 179               	(2,4)",36,0,0,avr_math_maverage
+ 182 008a FC81      	.global	avr_math_maverage
+ 184 008e 9181      	avr_math_maverage:
+ 186 0092 8D83      	.LM0:
+ 187               	.LFBB1:
+  66:avr_math.c    **** 		}
+  67:avr_math.c    **** 		p++;
+ 188               	s	"avr_math_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 191 0096 9C81      	.global	avr_math_maverage
+ 193 009a 9C83      	avr_math_maverage:
+ 195               	.LM0:
+ 196               	.LFBB1:
+ 197               		push r29
+ 198 009e 2B81      		push r28
+ 199 00a0 3C81      		in r28,__SP_L__
+ 200 00a2 8D85      		in r29,__SP_H__
+ 201 00a4 9E85      		sbiw r28,16
+ 202 00a6 2817      		in __tmp_reg__,__SREG__
+ 203 00a8 3907      		cli
+ 204 00aa 01F4      		out __SP_H__,r29
+  68:avr_math.c    **** 	}
+  69:avr_math.c    **** 
+  70:avr_math.c    **** 	p = start;
+ 205               	0,0,13
+ 206               	.global	avr_math_maverage
+ 208 00ae 9C85      	avr_math_maverage:
+ 210 00b2 8B83      	.LM0:
+ 211 00b4 00C0      	.LFBB1:
+ 212               		push r29
+  71:avr_math.c    **** 	while( p != stop ){
+  72:avr_math.c    **** 		if(*p == max_value){
+ 213               	_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 216 00b8 FC81      	.global	avr_math_maverage
+ 218 00bc 3181      	avr_math_maverage:
+ 220 00c0 9885      	.LM0:
+ 221 00c2 2817      	.LFBB1:
+ 222 00c4 3907      		push r29
+ 223 00c6 01F4      		push r28
+  73:avr_math.c    **** 			max_value = 0;
+ 224               	(2,4)",36,0,0,avr_math_maverage
+ 227 00ca 1F82      	.global	avr_math_maverage
+ 229               	avr_math_maverage:
+  74:avr_math.c    **** 		}else{
+  75:avr_math.c    **** 			sum += *p;
+ 230               	,0
+ 236 00d6 8985      	.global	avr_math_maverage
+ 238 00da 820F      	avr_math_maverage:
+ 240 00de 9A87      	.LM0:
+ 241 00e0 8987      	.LFBB1:
+  76:avr_math.c    **** 			len++;
+ 242               	s	"avr_math_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 245 00e4 9A81      	.global	avr_math_maverage
+ 247 00e8 9A83      	avr_math_maverage:
+ 249               	.LM0:
+  77:avr_math.c    **** 		}
+  78:avr_math.c    **** 
+  79:avr_math.c    **** 		if(*p == min_value){
+ 250               	,0
+ 254 00f0 2081      	.global	avr_math_maverage
+ 256 00f4 8D81      	avr_math_maverage:
+ 258 00f8 2817      	.LM0:
+ 259 00fa 3907      	.LFBB1:
+ 260 00fc 01F4      		push r29
+  80:avr_math.c    **** 			min_value = 0;
+ 261               	_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 264 0100 1D82      	.global	avr_math_maverage
+ 266               	avr_math_maverage:
+  81:avr_math.c    **** 		}else{
+  82:avr_math.c    **** 			sum += *p;
+ 267               	,0
+ 273 010c 8985      	.global	avr_math_maverage
+ 275 0110 820F      	avr_math_maverage:
+ 277 0114 9A87      	.LM0:
+ 278 0116 8987      	.LFBB1:
+  83:avr_math.c    **** 			len++;
+ 279               	s	"avr_math_maverage:F(2,4)",36,0,0,avr_math_maverage
+ 282 011a 9A81      	.global	avr_math_maverage
+ 284 011e 9A83      	avr_math_maverage:
+ 286               	.LM0:
+  84:avr_math.c    **** 		}
+  85:avr_math.c    **** 
+  86:avr_math.c    **** 		p++;
+ 287               	,0
+ 291 0126 0296      	.global	avr_math_maverage
+ 293 012a 8B83      	avr_math_maverage:
+ 295               	.LM0:
+ 296               	.LFBB1:
+ 297 012c 2B81      		push r29
+ 298 012e 3C81      		push r28
+ 299 0130 8D85      		in r28,__SP_L__
+ 300 0132 9E85      		in r29,__SP_H__
+ 301 0134 2817      		sbiw r28,16
+ 302 0136 3907      		in __tmp_reg__,__SREG__
+ 303 0138 01F0      		cli
+ 304 013a 00C0      		out __SP_H__,r29
+  87:avr_math.c    **** 	}
+  88:avr_math.c    **** 
+  89:avr_math.c    **** 	return (sum / len);
+ 305               	0,0,13
+ 306               	.global	avr_math_maverage
+ 308 013e 9A85      	avr_math_maverage:
+ 310 0142 3A81      	.LM0:
+ 311 0144 B901      	.LFBB1:
+ 312 0146 00D0      		push r29
+ 313 0148 CB01      		push r28
+ 314 014a 988B      		in r28,__SP_L__
+ 315 014c 8F87      		in r29,__SP_H__
+ 316               		sbiw r28,16
+ 317 014e 8F85      		in __tmp_reg__,__SREG__
+ 318 0150 9889      		cli
+ 319               		out __SP_H__,r29
+  90:avr_math.c    **** }
+ 320               	0,0,13
+ 321               	.global	avr_math_maverage
+ 323 0154 0FB6      	avr_math_maverage:
+ 325 0158 DEBF      	.LM0:
+ 326 015a 0FBE      	.LFBB1:
+ 327 015c CDBF      		push r29
+ 328 015e CF91      		push r28
+ 329 0160 DF91      		in r28,__SP_L__
+ 330 0162 0895      		in r29,__SP_H__
+ 331               		sbiw r28,16
+ 332               		in __tmp_reg__,__SREG__
+ 333               		cli
+ 334               		out __SP_H__,r29
+ 335               		out __SREG__,__tmp_reg__
+ 336               		out __SP_L__,r28
+ 337               	/* prologue: function */
+ 338               	/* frame size = 16 */
+ 339               		std Y+12,r25
+ 340               		std Y+11,r24
+ 341               		std Y+14,r23
+DEFINED SYMBOLS
+                            *ABS*:00000000 avr_math.c
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:2      *ABS*:0000003f __SREG__
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:5      *ABS*:00000034 __CCP__
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Steven\AppData\Local\Temp/ccAXXizR.s:85     .text:00000000 avr_math_maverage
+
+UNDEFINED SYMBOLS
+__udivmodhi4

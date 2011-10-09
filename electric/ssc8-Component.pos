@@ -1,0 +1,21 @@
+### Module positions - created on 05/11/2009 21:37:46 ###
+### Printed by PcbNew version PCBnew (20090216-final)
+## Unit = inches, Angle = deg.
+## Side : Component
+# Ref    Val                  PosX       PosY        Rot     Side
+C1       28pF                -0.1250     1.0200       0.0    Component
+C2       28pF                -0.1250     0.8200       0.0    Component
+C4       100nF               -1.6450     1.0400       0.0    Component
+C6       100nF               -2.0650     0.8600     270.0    Component
+C8       100nF               -1.1450     0.2050      90.0    Component
+C9       100nF               -0.5950     0.2100      90.0    Component
+C11      100nF               -0.0650     0.1450     270.0    Component
+D1       1N4007              -1.9150     1.4500       0.0    Component
+D2       ZENER               -1.9150     1.3000       0.0    Component
+D3       POWER               -1.6250     1.2750      90.0    Component
+D4       IC-POWER            -2.3450     0.5900     180.0    Component
+R2       470                 -1.6650     1.4500       0.0    Component
+R3       10K                 -0.1050     0.5550      90.0    Component
+R4       10K                 -0.2100     0.5550      90.0    Component
+R5       330                 -2.0975     0.6000     180.0    Component
+## End

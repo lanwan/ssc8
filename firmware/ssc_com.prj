@@ -1,0 +1,42 @@
+; ************************************************************
+; PROJECT: SSC_COM
+; AUTHOR: LDROBOT steven wong
+; ************************************************************
+
+; Micro + software running
+; ------------------------------------------------------------
+.MICRO "ATmega8"
+.TOOLCHAIN "GCC"
+.GCCPATH   "C:\WinAVR"
+.GCCMAKE   AUTO
+.TARGET    "ssc_com.hex"
+.SOURCE    "avr_uart.c" "avr_math.c" "ssc_main.c" "avr_twi.c"
+.TRACE              ; Activate micro trace
+
+; Following lines are optional; if not included
+; exactly these values are taken by default
+; ------------------------------------------------------------
+.POWER VDD=5 VSS=0  ; Power nodes
+.CLOCK 8meg         ; Micro clock
+.STORE 250m         ; Trace (micro+signals) storage time
+
+; Micro nodes: RESET, AREF, PB0-PB7, PC0-PC6, PD0-PD7, ACO, TIM1OVF, ADC6, ADC7
+; Define here the hardware around the micro
+; ------------------------------------------------------------
+
+XRS232  TTY2(19200 8) PD0 PD1
+
+.PLOT V(PC0) V(PC1) V(PC2) V(PC3) V(PD4) V(PD5) V(PD6) V(PD7) V(PC4)
+
+V PC4  VSS SLIDER_1(0 1.25)
+
+
+
+
+
+
+
+
+
+
+
